@@ -19,3 +19,6 @@ $security->login('username', 'password'); // -> true/false (Credentials correct/
 ``` php
 $security->set_user_active('username'); // -> true/false (Sucess/Failure)
 $security->set_user_inactive('username'); // -> true/false (Success/Failure)
+```
+### API Requests
+Client calls ` https://yourserver.com/api.php?api_key=(API KEY)&api_secret=(API SECRET) `
