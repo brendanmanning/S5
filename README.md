@@ -4,7 +4,15 @@ Super Simple Server Side Security
 ## Setup
 1. Download **S5.php** and place it somewhere in your application.
 2. Edit the header and replace the database login information with your own.
-
+3. Create a file (I called mine createdatabase.php) in the same folder as S5.php
+4. Paste the following in the file you created
+``` php
+<?php
+  require 'S5.php';
+  $security = new S5();
+  $security->prepare_database();
+?>
+```
 ## Usage
 ``` php
 $security = new S5();
