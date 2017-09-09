@@ -2,13 +2,14 @@
 
   //
   // S5.php
+  // Super Simple Server Side Security
   // Utility class for validating users in a MySQL database
   //
   // (c) 2017 Brendan Manning
   // MIT License
   //
 
-  class S5 {
+  class Security {
 
     // Your database connection information here
     private $database_connection = [
@@ -494,6 +495,30 @@
     }
 
     // MARK: - Utility methods
+
+    // Prepares the database table
+    public function prepare_database() {
+
+      // Create the users table
+      $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `users` ( `id` int(11) NOT NULL AUTO_INCREMENT, `user` text NOT NULL, `password` text NOT NULL, `data` text NOT NULL, `active` int(11) NOT NULL DEFAULT '1', `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY (`id`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=30 ;");
+      if(!$sql->execute()) {
+        return false;
+      }
+
+      // Create the user's tokens table
+      $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `user_tokens` (`id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Irrelevant - Only exists to make sure each column is unique', `user` text NOT NULL, `token` text NOT NULL, `expiration` bigint(11) NOT NULL, `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=88 ;");
+      if(!$sql->execute()) {
+        return false;
+      }
+
+      // Create the API credentials table
+      $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `api_authentication` (`id` int(11) NOT NULL AUTO_INCREMENT, `api_key` text NOT NULL, `api_secret` text NOT NULL, `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3 ;");
+      if(!$sql->execute()) {
+        return false;
+      }
+
+      return false;
+    }
 
     // Checks if a SQL object's recent query had only one result
     private function exactly_one_result_returned($sql) {
