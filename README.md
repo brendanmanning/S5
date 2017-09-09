@@ -10,9 +10,16 @@ Super Simple Server Side Security
 <?php
   require 'S5.php';
   $security = new S5();
-  $security->prepare_database();
+  $success = $security->prepare_database();
+  if($success) {
+    echo "Database prepared!";
+  } else {
+    echo "Error preparing database";
+  }
 ?>
 ```
+5. Visit the page in your browser (for example: `http://yourserver.com/createdatabase.php`)
+6. **Delete the file**. You no longer need it
 ## Usage
 ``` php
 $security = new S5();
