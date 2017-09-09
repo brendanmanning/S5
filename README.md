@@ -21,8 +21,10 @@ $security->set_user_active('username'); // -> true/false (Sucess/Failure)
 $security->set_user_inactive('username'); // -> true/false (Success/Failure)
 ```
 ### API Requests
-Client calls ` https://yourserver.com/api.php?api_key=(API KEY)&api_secret=(API SECRET)&user=(Username from S5)&token=(User's token)`
-api.php calls ```php
+Client calls 
+`https://yourserver.com/api.php?api_key=(API KEY)&api_secret=(API SECRET)&user=(Username from S5)&token=(User's token)`
+api.php calls 
+```php
 if(!$security->verify_get_api_request()) {
   echo "Request invalid";
 }
