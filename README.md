@@ -19,6 +19,8 @@ $security->login('username', 'password'); // -> true/false (Credentials correct/
 ``` php
 $security->set_user_active('username'); // -> true/false (Sucess/Failure)
 $security->set_user_inactive('username'); // -> true/false (Success/Failure)
+
+$security->verify_account_active('username'); // -> true/false (Account active/inactive)
 ```
 ### API Requests
 Client calls 
