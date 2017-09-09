@@ -4,6 +4,7 @@
   // S5.php
   // Super Simple Server Side Security
   // User authentication and API backend made easy
+  // Available from: https://github.com/brendanmanning/S5/
   //
   // (c) 2017 Brendan Manning
   // MIT License
