@@ -3,7 +3,7 @@
   //
   // S5.php
   // Super Simple Server Side Security
-  // Utility class for validating users in a MySQL database
+  // User authentication and API backend made easy
   //
   // (c) 2017 Brendan Manning
   // MIT License
