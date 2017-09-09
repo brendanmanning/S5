@@ -42,9 +42,8 @@ $security->verify_account_active('username'); // -> true/false (Account active/i
 3. **Delete the file** to prevent anyone from creating their own api credentials
 
 #### Validating API Requests
-Client calls 
-`https://yourserver.com/api.php?api_key=(API KEY)&api_secret=(API SECRET)&user=(Username from S5)&token=(User's token)`
-at the top of api.php go 
+1. Client calls `https://yourserver.com/api.php?api_key=(API KEY)&api_secret=(API SECRET)&user=(Username from S5)&token=(User's token)`
+2. at the top of api.php (or whatever you call it) add 
 ```php
 if(!$security->verify_get_api_request()) {
   die("Request invalid");
