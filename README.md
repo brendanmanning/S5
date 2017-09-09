@@ -10,19 +10,38 @@ Super Simple Server Side Security
 $security = new S5();
 ```
 ## Documentation
-### User Authentication
+#### User Authentication
 ``` php
 $security->register('username', 'password'); // -> true/false (Success)
 $security->login('username', 'password'); // -> true/false (Credentials correct/incorrect)
 ```
-### Managing Users
+#### Managing Users
 ``` php
 $security->set_user_active('username'); // -> true/false (Sucess/Failure)
 $security->set_user_inactive('username'); // -> true/false (Success/Failure)
 
 $security->verify_account_active('username'); // -> true/false (Account active/inactive)
 ```
-### API Requests
+
+#### Creating API Credentials
+1. Create a blank php file in the same folder a S5.php and paste in the following
+``` php
+<?php
+  require 'S5.php';
+  
+  $security = new S5();
+  
+  $credentials = $security->create_api_credentials();
+  
+  echo "API Key: " . $credentials['key'];
+  echo "<br>";
+  echo "API Secret: " . $credentials['secret'];
+?>
+```
+2. View that page in a browser (for example: visit `http://yourserver.com/(file name).php`). It will display your credentials onscreen.
+3. **Delete the file** to prevent anyone from creating their own api credentials
+
+#### Validating API Requests
 Client calls 
 `https://yourserver.com/api.php?api_key=(API KEY)&api_secret=(API SECRET)&user=(Username from S5)&token=(User's token)`
 at the top of api.php go 
