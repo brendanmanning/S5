@@ -10,7 +10,7 @@
   // MIT License
   //
 
-  class Security {
+  class S5 {
 
     // Your database connection information here
     private $database_connection = [
