@@ -1,6 +1,9 @@
 # S5
 Super Simple Server Side Security
 
+## About this Branch
+This version has a **permissions management** feature and a few other tweaks needed when I created another project [The API Man](https://github.com/brendanmanning/The-API-Man)
+
 ## Setup
 1. Download **S5.php** and place it somewhere in your application.
 2. Edit the header and replace the database login information with your own.
