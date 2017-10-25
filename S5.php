@@ -1,5 +1,4 @@
 <?php
-
   //
   // S5.php
   // Super Simple Server Side Security
@@ -9,18 +8,18 @@
   // (c) 2017 Brendan Manning
   // MIT License
   //
-
   class S5 {
-
     // Your database connection information here
     private $database_connection = [
       "db_host" => "localhost",
-      "db_name" => "{mysql database name}",
-      "db_user" => "{mysql database user}",
-      "db_pass" => "{mysql database pass}",
-      "db_users_table" => " -- ", // Table where your user accounts are saved. Created if not exists
-      "db_tokens_table" => " -- ", // Table where user tokens will be saved. Created if not exists
-      "db_api_table" => " -- " // Table where api keys and tokens will be saved. Created if not exists
+      "db_name" => "brenuzrr_wgwars",
+      "db_user" => "brenuzrr_wgwars",
+      "db_pass" => "12265790",
+      "db_users_table" => "users", // Table where your user accounts are saved. Created if not exists
+      "db_tokens_table" => "tokens", // Table where user tokens will be saved. Created if not exists
+      "db_api_table" => "api", // Table where api keys and tokens will be saved. Created if not exists
+      "db_permissions_table" => "permissions", // Table where metadata about permissions will be saved
+      "db_permission_assignments_table" => "permissionassignments"
     ];
     // Your configuration options here
     private $configuration = [
@@ -76,8 +75,13 @@
       $sql = $this->conn->prepare("INSERT INTO " . $this->database_connection['db_users_table'] . " (user,password) VALUES (:user,:password)");
       $sql->bindParam(":user", $username);
       $sql->bindParam(":password", $hashedPassword);
-      // Save the database record
-      return $sql->execute();
+      $success = $sql->execute();
+      
+      if($success) {
+        return $this->conn->lastInsertId();
+      } else {
+        false;
+      }
     }
     // Login function - Attempts to login a user given their username and password
     public function login($username, $password) {
@@ -90,14 +94,16 @@
         return false;
       }
       // Select the password from the database
-      $sql = $this->conn->prepare("SELECT password FROM " . $this->database_connection['db_users_table'] . " WHERE user LIKE :user");
+      $sql = $this->conn->prepare("SELECT id, password FROM " . $this->database_connection['db_users_table'] . " WHERE user LIKE :user");
       $sql->bindParam(":user", $username);
       // Execute the query and verify it's results
       $success = $sql->execute();
       if(!$success) {
         return false;
       }
+      
       // Get the fetched row while making sure only one result was returned
+      $userid = -1;
       $passwordHash = null;
       while( $row = $sql->fetch() ) {
         // A row had already been returned (not good!)
@@ -106,14 +112,169 @@
         }
         // Retrieve the hash
         $passwordHash = $row['password'];
+        $userid = $row['id'];
       }
       // Make sure that we got ANYTHING at all
       if($passwordHash == null) {
         return false;
       }
       // Use PHP's password_verify to see if the password is correct
-      return password_verify($password, $passwordHash);
+      $loggedin = password_verify($password, $passwordHash);
+      if($loggedin) {
+        return $userid;
+      } else {
+        return false;
+      }
     }
+    
+    /**
+     * Create a permission
+     * @param name The name of the permission. For example "posting"
+     * @param description The description of the permission. For example "Users with this permission may add posts"
+     * @return The id of the permission on success, false on error
+     */
+    function create_permission($name, $description) {
+      $sql = $this->conn->prepare("INSERT INTO " . $this->database_connection['db_permissions_table'] . " (permissionname, permissiondescription) VALUES (:name,:description)");
+      $sql->bindParam(":name", $name);
+      $sql->bindParam(":description", $description);
+      if($sql->execute()) {
+        return $this->conn->lastInsertId();
+      } else {
+        return false;
+      }
+    }
+     
+    /**
+     * Delete a permission
+     * @param $permissionid The database ID of the permission to delete
+     * @return True/False based on the success of the operation
+     */
+    function delete_permission($permissionid) {
+      $sql = $this->conn->prepare("DELETE FROM " . $this->database_connection['db_permissions_table'] . " WHERE permissionid = :id");
+      $sql->bindParam(":id", $permissionid);
+      return $sql->execute();
+    }
+    
+    /**
+     * Get a permission
+     * @param $permissionid The database ID of the permission to fetch
+     * @return The permission as an associative array or NULL on error
+     */
+    function get_permission($permissionid) {
+      $permission = array();
+      $error = true;
+      
+      $sql = $this->conn->prepare("SELECT * FROM " . $this->database_connection['db_permissions_table'] . " WHERE permissionid=:id");
+      $sql->bindParam(":id", $permissionid);
+      $sql->execute();
+      
+      while($row=$sql->fetch()) {
+        $permission["id"] = $row['permissionid'];
+        $permission["name"] = $row['permissionname'];
+        $permission["description"] = $row['permissiondescription'];
+        $permission['createdAt'] = $row['created'];
+        
+        $error = false;
+      }
+      
+      if($error) {
+        return NULL;
+      } else {
+       return $permission;
+      }
+    }
+    
+    /**
+     * List all permissions
+     * @return An array of permissions. Each permission is in the form of an associative array
+     */
+    function list_permissions() {
+     
+      $permissions = array();
+    
+      $sql = $this->conn->prepare("SELECT * FROM " . $this->database_connection['db_permissions_table']);
+      $sql->execute();
+      
+      while($row=$sql->fetch()) {
+        $permissions[] = array(
+          "id" => $row['permissionid'],
+          "name" => $row['permissionname'],
+          "description" => $row['permissiondescription'],
+          "createdAt" => $row['created']
+        );
+      }
+      
+      return $permissions;
+    }
+    
+    /**
+     * List all permissions on a user
+     * @param $userid The user to list permission for
+     * @return An array of permissions that have been granted to the user. Each permission is in the form of an associative array
+     */
+    function list_permissions_on($userid) {
+    
+      $permissions = array();
+      
+      $sql = $this->conn->prepare("SELECT permissionid FROM " . $this->database_connection['db_permission_assignments_table'] . " WHERE userid=:user AND enabled=1");
+      $sql->bindParam(":user", $userid);
+      $sql->execute();
+      
+      while($row = $sql->fetch()) {
+        $permissions[] = $this->get_permission($row['permissionid']);
+      }
+      
+      return $permissions;
+    }
+     
+    /**
+     * Check if a user is granted a certain permission
+     * @param $userid The user to check for
+     * @param $permissionid The permission to check for
+     * @return True/False based on whether or not the user has permission
+     */
+    function has_permission($userid, $permissionid) {
+      $granted = false;
+      
+      $sql = $this->conn->prepare("SELECT granted FROM " . $this->database_connection['db_permission_assignments_table'] . " WHERE userid=:user AND permissionid=:id AND enabled=1");
+      $sql->bindParam(":user", $userid);
+      $sql->bindParam(":id", $permissionid);
+      $sql->execute();
+      
+      while($row = $sql->fetch()) {
+        // We found something! The user has permission!
+        return true;
+      }
+      
+      return false;
+    }
+     
+    /**
+     * Grant a user a permission
+     * @param $userid The user to give the permission to
+     * @param $permissionid The permission to give to the user
+     * @return True/False based on the success of the operation
+     */
+    function grant_permission($userid, $permissionid) {
+      $sql = $this->conn->prepare("INSERT INTO " . $this->database_connection['db_permission_assignments_table'] . " (permissionid, userid) VALUES (:permissionid, :userid)");
+      $sql->bindParam(":permissionid", $permissionid);
+      $sql->bindParam(":userid", $userid);
+      return $sql->execute();
+    } 
+     
+    /**
+     * Remove a permissions from a user
+     * @param $userid The user to remove the permission from
+     * @param $permissionid The permission to remove
+     * @return True/False based on the success of the operation
+     */
+    function remove_permission($userid, $permissionid) {
+      $sql = $this->conn->prepare("DELETE FROM " . $this->database_connection['db_permission_assignments_table'] . " WHERE permissionid=:permissionid AND userid=:userid");
+      $sql->bindParam(":permissionid", $permissionid);
+      $sql->bindParam(":userid", $userid);
+      return $sql->execute();
+    }
+    
     // Toggle's a user's active status
     public function set_user_active_status($username, $status) {
       // Make sure the user exists
@@ -395,21 +556,37 @@
     // MARK: - Utility methods
     // Prepares the database table
     public function prepare_database() {
+     
       // Create the users table
       $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `" . $this->database_connection['db_users_table'] . "` ( `id` int(11) NOT NULL AUTO_INCREMENT, `user` text NOT NULL, `password` text NOT NULL, `data` text NOT NULL, `active` int(11) NOT NULL DEFAULT '1', `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY (`id`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=30 ;");
       if(!$sql->execute()) {
         return false;
       }
+      
       // Create the user's tokens table
       $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `" . $this->database_connection['db_tokens_table'] . "` (`id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Irrelevant - Only exists to make sure each column is unique', `user` text NOT NULL, `token` text NOT NULL, `expiration` bigint(11) NOT NULL, `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=88 ;");
       if(!$sql->execute()) {
         return false;
       }
+      
       // Create the API credentials table
       $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `" . $this->database_connection['db_api_table'] . "` (`id` int(11) NOT NULL AUTO_INCREMENT, `api_key` text NOT NULL, `api_secret` text NOT NULL, `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3 ;");
       if(!$sql->execute()) {
         return false;
       }
+      
+      // Create the permissions table (this is the table with metadata about each permission)
+      $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `" . $this->database_connection['db_permissions_table'] . "` (`permissionid` int(11) NOT NULL AUTO_INCREMENT,`permissionname` text NOT NULL,`permissiondescription` text NOT NULL,`created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY (`permissionid`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;");
+      if(!$sql->execute()) {
+        return false;
+      }
+      
+      // Create the permissions assignments table (This lists all the permissions tied to each user)
+      $sql = $this->conn->prepare("CREATE TABLE IF NOT EXISTS `" . $this->database_connection['db_permission_assignments_table'] . "` (`permissionassignmentid` int(11) NOT NULL AUTO_INCREMENT,`permissionid` int(11) NOT NULL,`userid` int(11) NOT NULL,`enabled` int(11) NOT NULL DEFAULT '1',`granted` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY (`permissionassignmentid`)) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=2 ;");
+      if(!$sql->execute()) {
+        return false;
+      }
+      
       return true;
     }
     // Checks if a SQL object's recent query had only one result
